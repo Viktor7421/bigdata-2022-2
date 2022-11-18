@@ -27,7 +27,7 @@ r = redis.Redis(host=REDIS_HOST,port=REDIS_PORT, decode_responses=True)
 class DataCapture():
     def __init__(self) -> None:
         self.conf = {
-            'bootstrap.servers': 'localhost:9092, localhost:9093, localhost:9094',
+            'bootstrap.servers': 'localhost:29092',
             'group.id': 'test7',     
             'enable.auto.commit': 'false',
             'auto.offset.reset': 'earliest',
@@ -44,7 +44,7 @@ class DataCapture():
         try:
             while True:
                 # msg = self.consumer.poll(1.0) # consume(100, 1.0)
-                msgs = self.consumer.consume(100, 1.0)                
+                msgs = self.consumer.consume(10, 1.0)                
                 if msgs is None:
                     continue
 
@@ -64,7 +64,7 @@ class DataCapture():
                 
                 #print(events)
                 temperatures = pluck(events,'Temperature')
-                #print(temperatures)
+                print(temperatures)
                 # irradiances = events.pluck("GHI")
                 # times = events.pluck("Date")
                 #plt.plot(temperatures, color='red')
