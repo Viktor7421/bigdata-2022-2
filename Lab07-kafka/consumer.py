@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 import time
 from pluck import pluck
 
-# REDIS_HOST = '0.0.0.0'
-# REDIS_PORT = '6379'
-# redis = redis.Redis(host=self.redis_host,port=self.redis_port, decode_responses=True)
+REDIS_HOST = '0.0.0.0'
+REDIS_PORT = '6379'
+r = redis.Redis(host=REDIS_HOST,port=REDIS_PORT, decode_responses=True)
 
 
 '''
@@ -58,20 +58,21 @@ class DataCapture():
                         # process it
                         print(event)
                         events.append(json.loads(event.decode('utf-8')))
+                        r.hmset(events[-1]['Time'], events[-1])
                         
                     self.consumer.commit(offsets=[TopicPartition(topic = self.topic, partition=partition, offset=offset+1)], asynchronous = False)
                 
                 #print(events)
                 temperatures = pluck(events,'Temperature')
-                print(temperatures)
+                #print(temperatures)
                 # irradiances = events.pluck("GHI")
                 # times = events.pluck("Date")
-                plt.plot(temperatures, color='red')
+                #plt.plot(temperatures, color='red')
                 # # plt.plot(irradiances, color='blue')
-                plt.ylabel('Temperature')
+                #plt.ylabel('Temperature')
                 # 
-                plt.show()
-                time.sleep(5)
+                #plt.show()
+                #time.sleep(5)
 
 
 

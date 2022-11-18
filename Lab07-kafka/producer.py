@@ -24,7 +24,7 @@ class App():
 
 def produce_dataframe(df):
     for row in df.values:
-        value = {"Date": row[0], "GTI": row[2], "Temperature": row[8]}
+        value = {"Time": row[0]+':'+row[1], "GTI": row[2], "Temperature": row[8]}
         print(value)
         app.produce(json.dumps(value))
         time.sleep(.25)
