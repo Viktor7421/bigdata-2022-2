@@ -11,7 +11,7 @@ class App():
     def __init__(self) -> None:
         self.topic = "test"
         self.conf_producer = {
-            'bootstrap.servers': 'localhost:9092',        
+            'bootstrap.servers': 'localhost:29092',        
             'client.id': socket.gethostname(),
         }
         self.producer = Producer(self.conf_producer)
