@@ -27,7 +27,7 @@ r = redis.Redis(host=REDIS_HOST,port=REDIS_PORT, decode_responses=True)
 class DataCapture():
     def __init__(self) -> None:
         self.conf = {
-            'bootstrap.servers': 'localhost:29092',
+            'bootstrap.servers': 'localhost:9092, localhost:9093, localhost:9094',
             'group.id': 'test7',     
             'enable.auto.commit': 'false',
             'auto.offset.reset': 'earliest',
@@ -40,39 +40,47 @@ class DataCapture():
         self.consumer = Consumer(self.conf)
         self.topic = topic
         self.consumer.subscribe([self.topic])
+        n = 0
 
         try:
             while True:
                 # msg = self.consumer.poll(1.0) # consume(100, 1.0)
-                msgs = self.consumer.consume(10, 1.0)                
+                msgs = self.consumer.consume(100, 1.0)                
                 if msgs is None:
                     continue
-
+                
                 events = []
                 for msg in msgs:
                     event = msg.value()
                     partition = msg.partition()
-                    offset = msg.offset()                                      
+                    offset = msg.offset()                                  
 
                     if event is not  None:
                         # process it
-                        print(event)
+                        #print(event)
                         events.append(json.loads(event.decode('utf-8')))
-                        r.hmset(events[-1]['Time'], events[-1])
-                        
+                        r.hmset("Solargis."+events[-1]['Time'], events[-1])
+                        r.zadd("Time", {"Solargis."+events[-1]['Time']: 0})
+
                     self.consumer.commit(offsets=[TopicPartition(topic = self.topic, partition=partition, offset=offset+1)], asynchronous = False)
                 
-                #print(events)
-                temperatures = pluck(events,'Temperature')
+                times = r.zrange("Time", n, n+99)
+                n = n + 100
+                data = []
+                for t in times:
+                    data.append(r.hgetall(t))
+
+                print(data)
+                temperatures = pluck(data,'Temperature')
                 print(temperatures)
                 # irradiances = events.pluck("GHI")
                 # times = events.pluck("Date")
-                #plt.plot(temperatures, color='red')
+                plt.plot([i for i in range(1,len(temperatures)+1)], [float(i) for i in temperatures], color='red')
                 # # plt.plot(irradiances, color='blue')
-                #plt.ylabel('Temperature')
+                plt.ylabel('Temperature')
                 # 
-                #plt.show()
-                #time.sleep(5)
+                plt.show()
+                time.sleep(5)
 
 
 
