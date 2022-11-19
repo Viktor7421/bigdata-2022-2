@@ -1,15 +1,17 @@
-
 from confluent_kafka import Consumer, TopicPartition
 import redis
 import json
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 import time
 from pluck import pluck
 
+N = 100
 REDIS_HOST = '0.0.0.0'
 REDIS_PORT = '6379'
 r = redis.Redis(host=REDIS_HOST,port=REDIS_PORT, decode_responses=True)
 
+#plt.style.use('fivethirtyeight')
 
 '''
     Topic: Weather
@@ -27,7 +29,7 @@ r = redis.Redis(host=REDIS_HOST,port=REDIS_PORT, decode_responses=True)
 class DataCapture():
     def __init__(self) -> None:
         self.conf = {
-            'bootstrap.servers': 'localhost:9092, localhost:9093, localhost:9094',
+            'bootstrap.servers': 'localhost:9092',
             'group.id': 'test7',     
             'enable.auto.commit': 'false',
             'auto.offset.reset': 'earliest',
@@ -36,7 +38,7 @@ class DataCapture():
             'request.timeout.ms': '120000'
         }
 
-    def consume(self, topic='test'):
+    def consume(self, i, topic='test'):
         self.consumer = Consumer(self.conf)
         self.topic = topic
         self.consumer.subscribe([self.topic])
@@ -45,7 +47,7 @@ class DataCapture():
         try:
             while True:
                 # msg = self.consumer.poll(1.0) # consume(100, 1.0)
-                msgs = self.consumer.consume(100, 1.0)                
+                msgs = self.consumer.consume(N, 1.0)                
                 if msgs is None:
                     continue
                 
@@ -64,22 +66,25 @@ class DataCapture():
 
                     self.consumer.commit(offsets=[TopicPartition(topic = self.topic, partition=partition, offset=offset+1)], asynchronous = False)
                 
-                times = r.zrange("Time", n, n+99)
-                n = n + 100
+                times = r.zrange("Time", n, n+N-1)
+                n = n + N
                 data = []
-                for t in times:
-                    data.append(r.hgetall(t))
+                if(len(times) >= N):
+                    for t in times:
+                        data.append(r.hgetall(t))
 
                 print(data)
                 temperatures = pluck(data,'Temperature')
                 print(temperatures)
                 # irradiances = events.pluck("GHI")
                 # times = events.pluck("Date")
-                plt.plot([i for i in range(1,len(temperatures)+1)], [float(i) for i in temperatures], color='red')
+                plt.cla()
+                plt.plot([i for i in range(1,len(temperatures)+1)], [float(i) for i in temperatures])
                 # # plt.plot(irradiances, color='blue')
                 plt.ylabel('Temperature')
+                plt.tight_layout()
                 # 
-                plt.show()
+                plt.pause(5)
                 time.sleep(5)
 
 
@@ -93,4 +98,6 @@ class DataCapture():
 
 
 capture = DataCapture()
-capture.consume('test') 
+ani = FuncAnimation(plt.gcf(), capture.consume)
+plt.tight_layout()
+plt.show()
