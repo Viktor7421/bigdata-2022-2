@@ -11,7 +11,7 @@ class App():
     def __init__(self) -> None:
         self.topic = "test"
         self.conf_producer = {
-            'bootstrap.servers': 'localhost:29092',        
+            'bootstrap.servers': 'localhost:9092',        
             'client.id': socket.gethostname(),
         }
         self.producer = Producer(self.conf_producer)
@@ -24,10 +24,10 @@ class App():
 
 def produce_dataframe(df):
     for row in df.values:
-        value = {"Time": row[0]+':'+row[1], "GTI": row[2], "Temperature": row[8]}
+        value = {"Time": row[0]+' '+row[1], "GTI": row[2], "Temperature": row[8]}
         print(value)
         app.produce(json.dumps(value))
-        time.sleep(.25)
+        time.sleep(.15)
 
 def produce_dataframe_by_chunks(df):
     for chunk_df in df:
@@ -38,7 +38,7 @@ app = App()
 
 # df = pd.read_csv('../datasets/csv/Solargis_min15_Almeria_Spain.csv')
 
-df100 = pd.read_csv('../datasets/csv/Solargis_min15_Almeria_Spain.csv', chunksize=100)
+df100 = pd.read_csv('Solargis_min15_Almeria_Spain.csv', chunksize=100)
 
 produce_dataframe_by_chunks(df100)
 
