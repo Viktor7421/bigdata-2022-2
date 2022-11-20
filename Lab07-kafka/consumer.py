@@ -1,7 +1,6 @@
 from confluent_kafka import Consumer, TopicPartition
 import pandas as pd
 import statsmodels.api as sm
-import xgboost as xgb
 import redis
 import json
 import matplotlib.pyplot as plt
@@ -41,7 +40,7 @@ class DataCapture():
             'request.timeout.ms': '120000'
         }
 
-    def consume(self, i, topic='test'):
+    def consume(self, topic='test'):
         self.consumer = Consumer(self.conf)
         self.topic = topic
         self.consumer.subscribe([self.topic])
@@ -58,8 +57,7 @@ class DataCapture():
                 for msg in msgs:
                     event = msg.value()
                     partition = msg.partition()
-                    offset = msg.offset()                                  
-
+                    offset = msg.offset()
                     if event is not  None:
                         # process it
                         #print(event)
@@ -76,39 +74,29 @@ class DataCapture():
                     for t in times:
                         data.append(r.hgetall(t))
 
-                #print(data)
-                temperatures = pluck(data,'Temperature')
-                #print(temperatures)
-                # irradiances = events.pluck("GHI")
-                # times = events.pluck("Date")
-
                 # TS
                 df = pd.DataFrame(data)
+                print(df)
                 df['Temperature'] = df['Temperature'].astype(float)                
                 df['Time'] = pd.to_datetime(df['Time'].str[:10] + ' ' + df['Time'].str[11:])
                 df = df.set_index('Time').groupby(pd.Grouper(freq='15min')).mean()
                 df = df.dropna()
-                
-                #print(df)
+
                 #Arima
                 modelo = sm.tsa.arima.ARIMA(df['Temperature'].iloc[1:],order=(10,1,0))
                 resultados = modelo.fit()
-                forecast_ = resultados.forecast(steps=10)
+                predict = resultados.forecast(steps=10).to_list()
                 
+                temperatures = df['Temperature'].to_list()
+                plt.plot([i for i in range(1, N + 1)], temperatures, color='blue')
+                plt.plot([i for i in range(N + 1, N + 11)], predict, color='green')
 
-                plt.cla()
-                #plt.plot([i for i in range(1,len(df_t)+1)], [float(i) for i in df_t])
-                plt.plot(df.index,df['Temperature'])
-                plt.plot(forecast_,color='green')
-                plt.legend()
-                # # plt.plot(irradiances, color='blue')
                 plt.ylabel('Temperature')
                 plt.xlabel("")
                 plt.tight_layout()
-
-                plt.pause(5)
-                time.sleep(5)
-
+                plt.pause(1)
+                time.sleep(10)
+                plt.clf()
                 print("==============================")
 
         except KeyboardInterrupt:
@@ -118,6 +106,5 @@ class DataCapture():
 
 
 capture = DataCapture()
-ani = FuncAnimation(plt.gcf(), capture.consume)
-plt.tight_layout()
 plt.show()
+capture.consume()
